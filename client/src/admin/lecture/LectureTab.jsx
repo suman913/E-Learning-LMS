@@ -21,7 +21,7 @@ import {
   useRemoveLectureMutation,
 } from "@/api/courseApi";
 
-const MEDIA_API = "https://lms-xrs4.onrender.com/api/v1/media";
+const MEDIA_API = "http://localhost:3000/api/v1/media";
 
 const LectureTab = () => {
   const { id: courseId, lectureId } = useParams();
@@ -41,12 +41,20 @@ const LectureTab = () => {
   const [btnDisable, setBtnDisable] = useState(true);
 
   useEffect(() => {
-    if (lecture) {
-      setTitle(lecture.lectureTitle);
-      setIsFree(lecture.isPreviewFree);
-      setUploadedVideoInfo(lecture.videoInfo);
+  if (lecture) {
+    setTitle(lecture.lectureTitle);
+    setIsFree(lecture.isPreviewFree ?? false);
+
+    if (lecture.videoUrl) {
+      setUploadedVideoInfo({
+        videoUrl: lecture.videoUrl,
+        publicId: lecture.publicId,
+      });
+    } else {
+      setUploadedVideoInfo(null);
     }
-  }, [lecture]);
+  }
+}, [lecture]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];

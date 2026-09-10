@@ -1,19 +1,23 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const COURSE_PURCHASE_API = "https://lms-xrs4.onrender.com/api/v1/purchase";
-
+const COURSE_PURCHASE_API = `${import.meta.env.VITE_API_BASE_URL}/purchase`;
 export const purchaseApi = createApi({
   reducerPath: "purchaseApi",
   baseQuery: fetchBaseQuery({ baseUrl: COURSE_PURCHASE_API }),
   endpoints: (builder) => ({
-    createCheckOutSession: builder.mutation({
-      query: (courseId) => ({
-        url: "/checkout/create-checkout-session",
-        method: "POST",
-        body: courseId,
-        credentials: "include",
-      }),
-    }),
+   createCheckOutSession: builder.mutation({
+  query: (data) => {
+    const courseId =
+      typeof data === "string" ? data : data?.courseId;
+
+    return {
+      url: "/checkout/create-checkout-session",
+      method: "POST",
+      body: { courseId },
+      credentials: "include",
+    };
+  },
+}),
     getCourseDetailsWithStatus: builder.query({
       query: (courseId) => ({
         url: `/courses/${courseId}/details-with-status`,

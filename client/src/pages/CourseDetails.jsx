@@ -19,8 +19,10 @@ const CourseDetails = () => {
   const navigate = useNavigate();
 
   // Use the new query to fetch both course details and purchase status
-  const { data, isLoading, isError } = useGetCourseDetailsWithStatusQuery(courseId);
-
+const { data, isLoading, isError } =
+  useGetCourseDetailsWithStatusQuery(courseId, {
+    refetchOnMountOrArgChange: true,
+  });
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Failed to load course details.</p>;
 

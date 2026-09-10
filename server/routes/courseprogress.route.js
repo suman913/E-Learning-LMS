@@ -13,5 +13,4 @@ router.route('/:courseId/lectures/:lectureId/view').post(isAuthenticated, update
 // Route to mark a course as completed
 router.route('/:courseId/complete').post(isAuthenticated, markAsCompleted);
 router.route('/:courseId/incomplete').post(isAuthenticated, markAsInCompleted);
-
 export default router;

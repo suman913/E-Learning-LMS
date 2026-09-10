@@ -3,30 +3,46 @@ import { Button } from "./ui/button";
 import { useCreateCheckOutSessionMutation } from "@/api/purchaseApi";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const BuyCourseButton = ({ courseId }) => {
-  const [createCheckOutSession, { data, isLoading, isSuccess, isError, error }] =
-    useCreateCheckOutSessionMutation();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((store) => store.auth);
+
+  const [
+    createCheckOutSession,
+    { data, isLoading, isSuccess, isError, error },
+  ] = useCreateCheckOutSessionMutation();
 
   const createCheckoutHandler = async () => {
+    // Logged-out users must login before purchasing
+    if (!isAuthenticated) {
+      navigate("/login?tab=login");
+      return;
+    }
+
     try {
       await createCheckOutSession({ courseId });
     } catch (err) {
       console.error("Error creating checkout session:", err);
     }
   };
- 
+
   useEffect(() => {
-    if (isSuccess) { 
+    if (isSuccess) {
       if (data?.url) {
-        window.location.href = data.url; // Redirect to Stripe checkout URL
+        window.location.href = data.url;
       } else {
         toast.error("Invalid response from server.");
       }
     }
+
     if (isError) {
       console.error("Error:", error);
-      toast.error(error?.data?.message || "Failed to create session");
+      toast.error(
+        error?.data?.message || "Failed to create session"
+      );
     }
   }, [data, isSuccess, isError, error]);
 

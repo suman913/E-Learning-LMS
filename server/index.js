@@ -18,8 +18,16 @@ const PORT = process.env.PORT || 3000;
 const DIRNAME = path.resolve();
 
 // default middleware
+// Stripe webhook MUST receive the raw body
+app.use(
+  "/api/v1/purchase/webhook",
+  express.raw({ type: "application/json" })
+);
+
+// Default middleware
 app.use(express.json());
 app.use(cookieParser());
+
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
@@ -27,7 +35,7 @@ app.use(
   })
 );
 
-// api's
+// APIs
 app.use("/api/v1/media", mediaRoute);
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/course", courseRoute);

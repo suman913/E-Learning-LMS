@@ -14,8 +14,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useLoginUserMutation, useRegisterUserMutation } from "@/api/authApi";
-import { useNavigate } from "react-router-dom";
-
+import { useNavigate, useSearchParams } from "react-router-dom";
 const Login = () => {
   const [loginInput, setLoginInput] = useState({ email: "", password: "" });
   const [signupInput, setSignupInput] = useState({
@@ -24,6 +23,8 @@ const Login = () => {
     password: "",
   });
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "login";
 
   // Destructuring data, error, and loading states directly from the tuple
   const [
@@ -91,7 +92,7 @@ const Login = () => {
 
   return (
     <div className="flex justify-center my-16 px-4 sm:px-8 md:px-16">
-  <Tabs defaultValue="login" className="w-full sm:w-[400px]">
+<Tabs defaultValue={defaultTab} className="w-full sm:w-[400px]">
     <TabsList className="grid w-full grid-cols-2">
       <TabsTrigger value="signup">Signup</TabsTrigger>
       <TabsTrigger value="login">Login</TabsTrigger>

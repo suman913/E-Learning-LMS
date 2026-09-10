@@ -1,12 +1,11 @@
 import React from "react";
 import Course from "@/pages/Course";
-import { useLoadUserQuery } from "@/api/authApi";
+import { useGetMyLearningQuery } from "@/api/courseApi";
 
 const MyLearning = () => {
-  const { data, isLoading } = useLoadUserQuery();
+  const { data, isLoading } = useGetMyLearningQuery();
 
-  // Ensure myLearning is initialized to an empty array if userProfile is not yet loaded
-  const myLearning = data?.user.enrolledCourses || [];
+const myLearning = data?.courses || [];
 
   return (
     <div className="max-w-4xl mx-auto my-10 px-4 md:px-0">

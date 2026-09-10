@@ -5,10 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon server/index.js",
-    "stripe":"stripe listen --forward-to https://lms-xrs4.onrender.com/api/v1/purchase/webhook",
+    "dev": "node --env-file=.env index.js",
+    "stripe": "stripe listen --forward-to http://localhost:3000/api/v1/purchase/webhook",
     "build":"npm install && npm install --prefix client && npm run build --prefix client",
-    "start":"nodemon server/index.js"
+    "start": "node --env-file=.env index.js"
   },
   "keywords": [],
   "author": "",

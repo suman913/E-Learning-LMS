@@ -16,82 +16,162 @@ const CourseProgress = () => {
   const params = useParams();
 
   // Fetch course progress
-  const { data, isLoading, isError, refetch } = useGetCourseProgressQuery(
-    params.courseId
-  );
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetCourseProgressQuery(params.courseId);
+
+  // Get course data BEFORE using it anywhere
+  const courseDetails = data?.data?.courseDetails;
+  const progress = data?.data?.progress || [];
+  const completed = data?.data?.completed || false;
+  const courseTitle = courseDetails?.courseTitle;
 
   // Mutation hooks
-  const [updateLectureProgress] = useUpdateLectureProgressMutation();
+  const [updateLectureProgress] =
+    useUpdateLectureProgressMutation();
+
   const [
     completeCourse,
-    { data: markCompletedData, isSuccess: completedSuccess },
+    {
+      data: markCompletedData,
+      isSuccess: completedSuccess,
+    },
   ] = useCompleteCourseMutation();
+
   const [
     inCompleteCourse,
-    { data: markInCompletedData, isSuccess: inCompletedSuccess },
+    {
+      data: markInCompletedData,
+      isSuccess: inCompletedSuccess,
+    },
   ] = useInCompleteCourseMutation();
 
+  // Current lecture
+  const [currentLecture, setCurrentLecture] = useState(null);
+
+  // Set first lecture after course data is loaded
+  useEffect(() => {
+    if (
+      !currentLecture &&
+      courseDetails?.lectures?.length > 0
+    ) {
+      setCurrentLecture(courseDetails.lectures[0]);
+    }
+  }, [courseDetails, currentLecture]);
+
+  // Handle completed/incomplete course response
   useEffect(() => {
     if (completedSuccess) {
       refetch();
-      toast.success(markCompletedData.message || "Marked as complete");
+
+      toast.success(
+        markCompletedData?.message ||
+          "Marked as complete"
+      );
     }
+
     if (inCompletedSuccess) {
       refetch();
-      toast.success(markInCompletedData.message || "Marked as incomplete");
+
+      toast.success(
+        markInCompletedData?.message ||
+          "Marked as incomplete"
+      );
     }
-  }, [completedSuccess, inCompletedSuccess]);
+  }, [
+    completedSuccess,
+    inCompletedSuccess,
+    markCompletedData,
+    markInCompletedData,
+    refetch,
+  ]);
 
-  // State for the current lecture
-  const [currentLecture, setCurrentLecture] = useState(null);
+  // Handle loading
+  if (isLoading) {
+    return <p>Loading...</p>;
+  }
 
-  // Handle loading and error states
-  if (isLoading) return <p>Loading...</p>;
-  if (isError) return <p>Failed to load course details.</p>;
+  // Handle error
+  if (isError || !courseDetails) {
+    return <p>Failed to load course details.</p>;
+  }
 
-  const { courseDetails, progress, completed } = data.data;
-  const { courseTitle } = courseDetails;
-
-  // Initialize the first lecture if not set
-  const initialLecture =
-    currentLecture || (courseDetails.lectures && courseDetails.lectures[0]);
-
-  // Update lecture progress when the user watches a lecture video
+  // Update lecture progress
   const handleLectureProgress = async (lectureId) => {
-    await updateLectureProgress({ courseId: params.courseId, lectureId });
-    refetch();
+    try {
+      await updateLectureProgress({
+        courseId: params.courseId,
+        lectureId,
+      }).unwrap();
+
+      refetch();
+    } catch (error) {
+      console.error(
+        "Failed to update lecture progress:",
+        error
+      );
+    }
   };
 
-  // Move to the next lecture automatically when current is completed
+  // Automatically move to next lecture
   const handleLectureEnd = () => {
-    const currentIndex = courseDetails.lectures.findIndex(
-      (lecture) => lecture._id === currentLecture._id
-    );
-    const nextLecture = courseDetails.lectures[currentIndex + 1];
+    if (!currentLecture) return;
+
+    const currentIndex =
+      courseDetails.lectures.findIndex(
+        (lecture) =>
+          lecture._id === currentLecture._id
+      );
+
+    const nextLecture =
+      courseDetails.lectures[currentIndex + 1];
+
     if (nextLecture) {
       setCurrentLecture(nextLecture);
-      handleLectureProgress(nextLecture._id);
     }
   };
 
-  // Handle selecting a specific lecture to watch
+  // Select lecture manually
   const handleSelectLecture = (lecture) => {
     setCurrentLecture(lecture);
     handleLectureProgress(lecture._id);
   };
 
-  // Handle marking the course as completed
+  // Mark course completed
   const handleCompleteCourse = async () => {
-    await completeCourse(params.courseId);
-  };
-  // Handle marking the course as incompleted
-  const handleInCompleteCourse = async () => {
-    await inCompleteCourse(params.courseId);
+    try {
+      await completeCourse(params.courseId).unwrap();
+    } catch (error) {
+      console.error(
+        "Failed to complete course:",
+        error
+      );
+    }
   };
 
-  // Determine if a lecture is completed by checking progress array
+  // Mark course incomplete
+  const handleInCompleteCourse = async () => {
+    try {
+      await inCompleteCourse(params.courseId).unwrap();
+    } catch (error) {
+      console.error(
+        "Failed to mark course incomplete:",
+        error
+      );
+    }
+  };
+
+  // Check whether lecture is completed
   const isLectureCompleted = (lectureId) => {
-    return progress.some((prog) => prog.lectureId === lectureId && prog.viewed);
+    return progress.some(
+      (prog) =>
+        prog.lectureId?.toString() ===
+          lectureId.toString() &&
+        prog.viewed
+    );
   };
 
   return (
@@ -118,28 +198,30 @@ const CourseProgress = () => {
         <div className="flex-1 md:w-3/5 h-fit rounded-lg shadow-lg p-4">
           <div className="relative overflow-hidden md:rounded-lg shadow-md">
             <video
-              src={currentLecture?.videoUrl || initialLecture.videoUrl}
-              controls
-              className="w-full h-auto md:rounded-lg"
-              onPlay={() =>
-                handleLectureProgress(currentLecture?._id || initialLecture._id)
-              } // Call when video starts playing
-              onEnded={handleLectureEnd} // Move to the next lecture automatically
-            />
+  key={currentLecture?._id}
+  src={currentLecture?.videoUrl}
+  controls
+  className="w-full h-auto md:rounded-lg"
+  onPlay={() => {
+    if (currentLecture?._id) {
+      handleLectureProgress(currentLecture._id);
+    }
+  }}
+  onEnded={handleLectureEnd}
+/>
           </div>
           {/* Display Current Watching Lecture Title and Index */}
           <div className="mt-2">
-            <h3 className="font-medium text-lg ">
-              {`Lecture ${
-                courseDetails.lectures.findIndex(
-                  (lec) =>
-                    lec._id === (currentLecture?._id || initialLecture._id)
-                ) + 1
-              }: ${
-                currentLecture?.lectureTitle || initialLecture.lectureTitle
-              }`}
-            </h3>
-          </div>
+  <h3 className="font-medium text-lg">
+    {currentLecture &&
+      `Lecture ${
+        courseDetails.lectures.findIndex(
+          (lecture) =>
+            lecture._id === currentLecture._id
+        ) + 1
+      }: ${currentLecture.lectureTitle}`}
+  </h3>
+</div>
         </div>
 
         {/* Lecture Sidebar */}

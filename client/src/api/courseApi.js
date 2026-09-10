@@ -1,7 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const COURSE_API = "https://lms-xrs4.onrender.com/api/v1/course"; // Adjust base URL if needed
-
+const COURSE_API = `${import.meta.env.VITE_API_BASE_URL}/course`;
 export const courseApi = createApi({
   reducerPath: "courseApi",
   tagTypes: ["Course", "Lectures"],
@@ -47,6 +46,13 @@ export const courseApi = createApi({
       }),
       providesTags: ["Course"],
     }),
+    getMyLearning: builder.query({
+  query: () => ({
+    url: "/my-learning",
+    method: "GET",
+    credentials: "include",
+  }),
+}),
     getCourseById: builder.query({
       query: (courseId) => ({
         url: `/${courseId}`,
@@ -127,6 +133,7 @@ export const {
   useGetAllCoursesQuery,
   useGetSearchedCoursesQuery,
   useGetCreatorCoursesQuery,
+  useGetMyLearningQuery,
   useGetCourseByIdQuery,
   useEditCourseMutation,
   useCreateCourseMutation,

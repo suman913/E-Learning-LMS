@@ -1,5 +1,6 @@
 import { Course } from "../models/course.model.js";
 import { Lecture } from "../models/lecture.model.js";
+import { CoursePurchase } from "../models/coursePurchase.model.js";
 import {
   deleteMediaFromCloudinary,
   deleteVideoFromCloudinary,
@@ -148,6 +149,8 @@ export const getAllCourses = async (_, res) => {
 export const getSingleCourse = async (req, res) => {
   try {
     const courseId = req.params.courseId;
+    const userId = req.id;
+
     const course = await Course.findById(courseId)
       .populate({ path: "creator", select: "name" })
       .populate({ path: "lectures" });
@@ -159,12 +162,42 @@ export const getSingleCourse = async (req, res) => {
       });
     }
 
+    // Check if the current user is the course creator
+    const isCreator =
+      course.creator?._id?.toString() === userId;
+
+    // Check if the current user has completed the purchase
+    const purchase = await CoursePurchase.findOne({
+      userId,
+      courseId,
+      status: "completed",
+    });
+
+    const isPurchased = !!purchase;
+
+    // Convert course to a normal object so we can safely
+    // remove protected video information.
+    const courseData = course.toObject();
+
+    if (!isCreator && !isPurchased) {
+      courseData.lectures = courseData.lectures.map((lecture) => {
+        if (!lecture.isPreviewFree) {
+          delete lecture.videoUrl;
+          delete lecture.publicId;
+        }
+
+        return lecture;
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      course,
+      course: courseData,
+      purchased: isPurchased,
     });
   } catch (error) {
-    console.log(error);
+    console.log("Error getting single course:", error);
+
     return res.status(500).json({
       success: false,
       message: "Failed to get single course",
@@ -225,20 +258,47 @@ export const searchCourse = async (req, res) => {
 export const getCourseLectures = async (req, res) => {
   try {
     const { courseId } = req.params;
+    const userId = req.id;
+
     const course = await Course.findById(courseId).populate({
       path: "lectures",
     });
+
     if (!course) {
       return res.status(404).json({
         success: false,
         message: "Course not found",
       });
     }
+
+    // Course creator/instructor can access their own course
+    const isCreator = course.creator?.toString() === userId;
+
+    // Check whether the current student has completed payment
+    const purchase = await CoursePurchase.findOne({
+      userId,
+      courseId,
+      status: "completed",
+    });
+
+    const isPurchased = !!purchase;
+
+    // Only the creator or a student who has purchased
+    // the course can access all lectures
+    if (!isCreator && !isPurchased) {
+      return res.status(403).json({
+        success: false,
+        message: "You must purchase this course to access the lectures.",
+      });
+    }
+
     return res.status(200).json({
+      success: true,
       lectures: course.lectures,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error getting course lectures:", error);
+
     return res.status(500).json({
       success: false,
       message: "Failed to get course lecture.",
@@ -253,41 +313,79 @@ export const getCourseLectures = async (req, res) => {
 export const togglePublishCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { publish } = req.query; // Use query parameter to determine action
+    const { publish } = req.query;
+    const userId = req.id;
 
     const course = await Course.findById(courseId);
+
     if (!course) {
       return res.status(404).json({
         message: "Course not found",
       });
     }
 
-    // Determine publish status based on query parameter
+    // Check whether the logged-in instructor owns this course
+    const isOwner =
+      course.creator?.toString() === userId.toString();
+
+    if (!isOwner) {
+      return res.status(403).json({
+        message: "You are not authorized to modify this course.",
+      });
+    }
+
+    // Update publish status
     course.isPublished = publish === "true";
+
     await course.save();
 
-    const statusMessage = course.isPublished ? "published" : "unpublished";
+    const statusMessage = course.isPublished
+      ? "published"
+      : "unpublished";
+
     return res.status(200).json({
       message: `Course is ${statusMessage}.`,
     });
   } catch (error) {
-    console.log(error);
+    console.log("Error updating course publish status:", error);
+
     return res.status(500).json({
       message: "Failed to update the course publish status.",
     });
   }
 };
-export const getMyLearning = async (req,res) => {
+export const getMyLearning = async (req, res) => {
   try {
     const userId = req.id;
-    const courses = await Purchase
+
+    const purchases = await CoursePurchase.find({
+      userId,
+      status: "completed",
+    }).populate({
+      path: "courseId",
+      populate: {
+        path: "creator",
+        select: "name photoUrl",
+      },
+    });
+
+    const courses = purchases
+      .filter((purchase) => purchase.courseId)
+      .map((purchase) => purchase.courseId);
+
+    return res.status(200).json({
+      success: true,
+      courses,
+    });
   } catch (error) {
-    console.log(error);
+    console.error("Error getting my learning courses:", error);
+
     return res.status(500).json({
+      success: false,
       message: "Failed to get my learning courses.",
     });
   }
-}
+};
 
 //? Lecture Controller start from here
 
@@ -341,10 +439,21 @@ export const editLecture = async (req, res) => {
     }
 
     // Update lecture details
-    if (lectureTitle) lecture.lectureTitle = lectureTitle;
-    if (videoInfo.videoUrl) lecture.videoUrl = videoInfo.videoUrl;
-    if (videoInfo.publicId) lecture.publicId = videoInfo.publicId;
-    if (isPreviewFree) lecture.isPreviewFree = isPreviewFree;
+    if (lectureTitle !== undefined) {
+  lecture.lectureTitle = lectureTitle;
+}
+
+if (videoInfo?.videoUrl) {
+  lecture.videoUrl = videoInfo.videoUrl;
+}
+
+if (videoInfo?.publicId) {
+  lecture.publicId = videoInfo.publicId;
+}
+
+if (isPreviewFree !== undefined) {
+  lecture.isPreviewFree = isPreviewFree;
+}
 
     // Save the updated lecture
     await lecture.save();
@@ -401,22 +510,64 @@ export const removeLecture = async (req, res) => {
   }
 };
 
-export const getLectureById = async (req,res) => {
+export const getLectureById = async (req, res) => {
   try {
-    const {lectureId} = req.params; 
+    const { lectureId } = req.params;
+    const userId = req.id;
+
     const lecture = await Lecture.findById(lectureId);
-    if(!lecture){
+
+    if (!lecture) {
       return res.status(404).json({
-        message:'Lecture not found'
-      })
+        success: false,
+        message: "Lecture not found",
+      });
     }
+
+    // Find the course containing this lecture
+    const course = await Course.findOne({
+      lectures: lectureId,
+    });
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course for this lecture not found",
+      });
+    }
+
+    // Course creator can access all lectures
+    const isCreator = course.creator?.toString() === userId;
+
+    // Check for a completed purchase
+    const purchase = await CoursePurchase.findOne({
+      userId,
+      courseId: course._id,
+      status: "completed",
+    });
+
+    const isPurchased = !!purchase;
+
+    // Free preview lectures are accessible without purchase
+    const isPreviewFree = lecture.isPreviewFree === true;
+
+    if (!isCreator && !isPurchased && !isPreviewFree) {
+      return res.status(403).json({
+        success: false,
+        message: "You must purchase this course to access this lecture.",
+      });
+    }
+
     return res.status(200).json({
-      lecture
-    })
+      success: true,
+      lecture,
+    });
   } catch (error) {
-    console.log(error);
+    console.error("Error getting lecture by id:", error);
+
     return res.status(500).json({
+      success: false,
       message: "Failed to get lecture by id",
     });
   }
-}
+};

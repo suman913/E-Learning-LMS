@@ -1,8 +1,7 @@
 import { userLoggedIn, userLoggedOut } from "@/features/authSlice";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const USER_API = "https://lms-xrs4.onrender.com/api/v1/user";
-
+const USER_API = `${import.meta.env.VITE_API_BASE_URL}/user`;
 export const authApi = createApi({
   reducerPath: "authApi",
   tagTypes: ["LoadUser"],
