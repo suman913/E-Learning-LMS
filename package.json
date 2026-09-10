@@ -5,11 +5,11 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "node --env-file=.env index.js",
-    "stripe": "stripe listen --forward-to http://localhost:3000/api/v1/purchase/webhook",
-    "build":"npm install && npm install --prefix client && npm run build --prefix client",
-    "start": "node --env-file=.env index.js"
-  },
+  "dev": "node --env-file=server/.env server/index.js",
+  "stripe": "stripe listen --forward-to http://localhost:3000/api/v1/purchase/webhook",
+  "build": "npm install && npm install --prefix client && npm run build --prefix client",
+  "start": "node server/index.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
