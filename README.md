@@ -139,35 +139,6 @@ The application also includes role-based instructor capabilities and backend aut
 
 ---
 
-## 📂 Project Structure
-
-```text
-E-Learning-LMS/
-│
-├── client/                         # React + Vite frontend
-│   ├── public/
-│   └── src/
-│       ├── api/                    # RTK Query APIs
-│       ├── components/             # Reusable UI components
-│       ├── features/               # Redux slices/features
-│       ├── pages/                  # Application pages
-│       └── ...
-│
-├── server/                         # Express backend
-│   ├── controllers/               # Business logic
-│   ├── db/                        # MongoDB connection
-│   ├── middlewares/               # Auth / role / optional auth
-│   ├── models/                    # Mongoose models
-│   ├── routes/                    # REST API routes
-│   ├── utils/                     # Cloudinary and helper utilities
-│   └── index.js                   # Backend entry point
-│
-├── uploads/                       # Local temporary upload directory
-├── package.json                   # Root scripts
-└── .gitignore
-```
-
----
 
 ## 🔄 Core Application Flows
 
@@ -233,103 +204,6 @@ All lectures viewed?
       └── Yes → Course completed
 ```
 
----
-
-## 🔐 Environment Variables
-
-### Backend — `server/.env`
-
-```env
-PORT=3000
-FRONTEND_URL=http://localhost:5173
-
-MONGO_URI=your_mongodb_connection_string
-SECRET_KEY=your_jwt_secret
-
-STRIPE_SECRET_KEY=your_stripe_test_secret
-WEBHOOK_ENDPOINT_SECRET=your_stripe_webhook_secret
-
-CLOUD_NAME=your_cloudinary_cloud_name
-API_KEY=your_cloudinary_api_key
-API_SECRET=your_cloudinary_api_secret
-```
-
-### Frontend — `client/.env`
-
-```env
-VITE_API_BASE_URL=http://localhost:3000/api/v1
-```
-
-### Production
-
-For the deployed single-service Render architecture, the frontend API base can use:
-
-```env
-VITE_API_BASE_URL=/api/v1
-```
-
-> **Never commit real secrets to GitHub.** Keep `.env` files in `.gitignore` and configure production secrets through your hosting provider.
-
----
-
-## 💻 Local Development
-
-### Prerequisites
-
-- Node.js 18+
-- npm
-- MongoDB Atlas account
-- Cloudinary account
-- Stripe account with Sandbox/Test mode enabled
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/suman913/E-Learning-LMS.git
-cd E-Learning-LMS
-```
-
-### 2. Install dependencies
-
-```bash
-npm install
-npm install --prefix client
-```
-
-### 3. Configure environment variables
-
-Create:
-
-```text
-server/.env
-client/.env
-```
-
-using the examples above.
-
-### 4. Start the backend
-
-```bash
-npm run dev
-```
-
-### 5. Start the frontend
-
-Open a second terminal:
-
-```bash
-cd client
-npm run dev
-```
-
-The development application will normally be available at:
-
-```text
-Frontend: http://localhost:5173
-Backend:  http://localhost:3000
-```
-
----
 
 ## 💳 Stripe Sandbox Testing
 
@@ -381,21 +255,6 @@ The root build script installs/builds the React client, while Express serves the
 
 Configure the backend secrets in Render's Environment Variables section rather than committing them to GitHub.
 
-Set the production frontend URL through:
-
-```env
-FRONTEND_URL=https://your-render-domain.onrender.com
-```
-
-and use:
-
-```env
-VITE_API_BASE_URL=/api/v1
-```
-
-for the single-service deployment.
-
----
 
 ## 🧪 Tested Functionality
 
